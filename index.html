@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Cook Workflow Walkthrough</title>
+<style>
+:root{
+  --bg:#0f172a; --card:#1e293b; --text:#e2e8f0; --text2:#cbd5e1; --muted:#94a3b8;
+  --orange:#fb923c; --teal:#2dd4bf; --border:#334155; --border2:#1e293b; --code:#0b1222;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:940px;margin:0 auto;padding:32px 16px 80px}
+h1{font-size:2.25rem;line-height:1.2;margin:0 0 8px}
+h2{font-size:1.6rem;margin:56px 0 12px;padding-top:12px;border-top:1px solid var(--border)}
+h3{font-size:1.25rem;margin:32px 0 8px;color:var(--orange)}
+h4{font-size:1rem;margin:20px 0 6px;color:var(--teal)}
+p,li{color:var(--text2)}
+a{color:var(--teal)}
+strong{color:var(--text)}
+.sub{color:var(--muted);margin:0 0 24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin:16px 0}
+.why{border-color:#fb923c66}
+.ex{border-color:#2dd4bf66}
+.warn{border-color:#f8717199}
+.label{display:inline-block;font-size:.75rem;font-weight:700;letter-spacing:.02em;color:var(--bg);background:var(--orange);border-radius:4px;padding:1px 7px;margin-right:6px}
+.ex .label{background:var(--teal)}
+.warn .label{background:#f87171}
+.src{display:inline-block;font-size:.72rem;border:1px solid var(--border);border-radius:4px;padding:0 6px;margin-left:4px;color:var(--muted);white-space:nowrap;vertical-align:1px}
+.src.a{border-color:#fb923c88;color:#fdba74}
+.src.s{border-color:#2dd4bf88;color:#5eead4}
+.src.v{border-color:#a5b4fc88;color:#c7d2fe}
+.src.e{border-color:#94a3b888;color:#cbd5e1;border-style:dashed}
+pre{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:12px 14px;overflow-x:auto;font-size:.85rem;line-height:1.5;color:#e2e8f0}
+code{font-family:ui-monospace,"Cascadia Code",Consolas,monospace;font-size:.88em}
+p code,li code,td code{background:var(--code);border:1px solid var(--border);border-radius:4px;padding:0 4px}
+.tw{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{border:1px solid var(--border);padding:6px 9px;text-align:left;vertical-align:top;color:var(--text2)}
+th{background:#172033;color:var(--text)}
+nav.toc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 18px}
+nav.toc ol{margin:6px 0 0;padding-left:22px}
+nav.toc li{margin:2px 0}
+details{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 16px;margin:14px 0}
+summary{cursor:pointer;color:var(--text);font-weight:600}
+.chat{margin:10px 0}
+.chat .u,.chat .g{border-radius:8px;padding:8px 12px;margin:6px 0;font-size:.93rem}
+.chat .u{background:#1f2a44;border:1px solid #3b4a6b}
+.chat .g{background:#132c2b;border:1px solid #1f5450}
+.chat b{color:var(--text)}
+svg{width:100%;height:auto;display:block}
+.legend span{margin-right:10px}
+@media (max-width:600px){h1{font-size:1.55rem}h2{font-size:1.25rem}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Leon Lin's Cook workflow, step by step, with one running example</h1>
+<p class="sub">How Leon Lin prompts an agent to build demos that hold up next to their references, and how his <code>/cook</code> skill runs the same steps as a loop. Written 2026-11-12.</p>
+
+<div class="card">
+<p><strong>Sources.</strong> This page uses three sources. Each claim has a tag that shows its source:</p>
+<ul class="legend">
+<li><span class="src a">Article</span> Leon Lin (<a href="https://x.com/LexnLin">@LexnLin</a>), <a href="https://x.com/LexnLin/status/2116662591363690999">"How I prompt AI to build good looking demos"</a>, X, 31 Oct 2026.</li>
+<li><span class="src s">Skill</span> Leon Lin's <code>cook</code> skill, <a href="https://github.com/Leonxlnx/cook">github.com/Leonxlnx/cook</a>: <code>SKILL.md</code>, <code>references/*.md</code>, <code>templates/*.md</code>, <code>scripts/side-by-side.mjs</code>.</li>
+<li><span class="src v">Video</span> AI Labs, YouTube video about the article and the skill: <a href="https://www.youtube.com/watch?v=-bv2xKQzZio">youtube.com/watch?v=-bv2xKQzZio</a>.</li>
+<li><span class="src e">Example</span> The running example on this page. I wrote it to show how the steps connect.</li>
+</ul>
+</div>
+
+<div class="card warn">
+<p><span class="label">Read this first</span>The running example is not a real run. Its times, scores, color values, file contents and messages are invented to show the mechanics. They are not measurements. The numbers from Leon's real runs (for example 45 h and 55 subagents for the Greek world) come from the sources and have a source tag.</p>
+</div>
+
+<nav class="toc">
+<strong>Contents</strong>
+<ol>
+<li><a href="#idea">The main idea</a></li>
+<li><a href="#example">The running example: a harbor town at dusk</a></li>
+<li><a href="#map">The loop on one page</a></li>
+<li><a href="#setup">Phase A: set up the run (steps 1 to 7)</a></li>
+<li><a href="#rounds">Phase B: the rounds (step 8)</a></li>
+<li><a href="#gate">Phase C: the gate and the stop check (steps 9 and 10)</a></li>
+<li><a href="#ship">Phase D: ship (step 11)</a></li>
+<li><a href="#timeline">The full example timeline</a></li>
+<li><a href="#resume">Resume after a context reset</a></li>
+<li><a href="#ui">The same workflow for a UI build</a></li>
+<li><a href="#video">What the AI Labs video adds or changes</a></li>
+<li><a href="#notes">Gaps and limits I found in the sources</a></li>
+<li><a href="#refs">References</a></li>
+</ol>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="idea">1. The main idea</h2>
+<p>Leon says the prompt text is not the most important part. In his words, "the references carry most of the quality in your prompt. The text stuff 'barely' matters." <span class="src a">Article</span></p>
+<p>The skill states the method in one line: "Give your agent a target, a bar and time, then let it cook." <span class="src s">Skill</span> So the agent gets four things:</p>
+<ol>
+<li><strong>A target.</strong> Reference images or videos. They show the result that you want.</li>
+<li><strong>A bar.</strong> A number. It tells the agent how close to the target the work must get.</li>
+<li><strong>Rules.</strong> What the agent must not use, for example downloaded assets or typical "AI look" patterns.</li>
+<li><strong>Time.</strong> A minimum time for a demo, or a maximum time for a small job.</li>
+</ol>
+<p>Then the agent works in rounds. In each round it builds, renders stills, compares them with the references, gets scores from judges that did not build the work, and fixes the weakest part. It stops only when the work reaches the bar. Leon calls this the Cook Loop. <span class="src a">Article</span> <span class="src s">Skill</span></p>
+
+<!-- ============================================================ -->
+<h2 id="example">2. The running example: a harbor town at dusk</h2>
+<p>All the steps below use this one project. <span class="src e">Example</span></p>
+<div class="tw"><table>
+<tr><th>Item</th><th>Value in the example</th></tr>
+<tr><td>What</td><td>A harbor town at dusk, built in three.js. Every mesh, texture and shader is made in code.</td></tr>
+<tr><td>References</td><td>10 images that you made with GPT Image (R01 to R10). 2 short drone-style clips for the camera motion (V01, V02).</td></tr>
+<tr><td>Hardware</td><td>A laptop with an integrated AMD Radeon 780M. Leon uses the same GPU. <span class="src a">Article</span></td></tr>
+<tr><td>Usage plan</td><td>A 5-hour usage window.</td></tr>
+<tr><td>Deliverable</td><td>Approved stills first. Then a video of about 1 minute at 1080p, 30 fps.</td></tr>
+<tr><td>Start</td><td>Tuesday 21:00. You go to sleep at about 23:45.</td></tr>
+</table></div>
+<p>I chose a 3D world because most of Leon's demos are 3D worlds and films, and because it uses every step of the skill: stills, a video gate and offline rendering. Section 10 shows what changes for a website or an app.</p>
+
+<!-- ============================================================ -->
+<h2 id="map">3. The loop on one page</h2>
+<div class="card">
+<svg viewBox="0 0 900 520" role="img" aria-label="Diagram of the Cook Loop: six setup steps, then a loop of nine steps per round, then ship when the stop check passes">
+<defs>
+<marker id="ar" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#fb923c"/></marker>
+<marker id="at" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#2dd4bf"/></marker>
+</defs>
+<style>
+.bx{fill:#1e293b;stroke:#334155;stroke-width:1.5}
+.bx2{fill:#132c2b;stroke:#2dd4bf;stroke-width:1.5}
+.bx3{fill:#3a2414;stroke:#fb923c;stroke-width:1.5}
+.t{fill:#e2e8f0;font:600 14px system-ui,sans-serif;text-anchor:middle;dominant-baseline:middle}
+.tm{fill:#94a3b8;font:12px system-ui,sans-serif;text-anchor:middle}
+</style>
+<!-- setup row -->
+<g>
+<rect class="bx" x="22" y="20" width="130" height="40" rx="7"/><text class="t" x="87" y="40">1 Prompt</text>
+<rect class="bx" x="167" y="20" width="130" height="40" rx="7"/><text class="t" x="232" y="40">2 Intake</text>
+<rect class="bx" x="312" y="20" width="130" height="40" rx="7"/><text class="t" x="377" y="40">3 Target</text>
+<rect class="bx" x="457" y="20" width="130" height="40" rx="7"/><text class="t" x="522" y="40">4 Bar</text>
+<rect class="bx" x="602" y="20" width="130" height="40" rx="7"/><text class="t" x="667" y="40">5–6 Rules, time</text>
+<rect class="bx" x="747" y="20" width="130" height="40" rx="7"/><text class="t" x="812" y="40">7 Harness</text>
+<path d="M732 40 L743 40" stroke="#fb923c" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M152 40 L163 40" stroke="#fb923c" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M297 40 L308 40" stroke="#fb923c" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M442 40 L453 40" stroke="#fb923c" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M587 40 L598 40" stroke="#fb923c" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M812 60 L812 100 L450 100 L450 164" fill="none" stroke="#fb923c" stroke-width="2" marker-end="url(#ar)"/>
+<text class="tm" x="630" y="92">once per run</text>
+</g>
+<!-- loop ring -->
+<path d="M347.4 198.4 A300 140 0 0 1 552.6 198.4 A300 140 0 0 1 709.8 260 A300 140 0 0 1 745.5 354.4 A300 140 0 0 1 642.9 437.2 A300 140 0 0 1 450 470 A300 140 0 0 1 257.1 437.2 A300 140 0 0 1 154.5 354.4 A300 140 0 0 1 190.2 260 A300 140 0 0 1 347.4 198.4" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-dasharray="5 4" marker-mid="url(#at)" marker-end="url(#at)"/>
+<rect class="bx2" x="380" y="170" width="140" height="40" rx="7"/><text class="t" x="450" y="190">8.1 Focus</text>
+<rect class="bx2" x="573" y="203" width="140" height="40" rx="7"/><text class="t" x="643" y="223">8.2 Fix in depth</text>
+<rect class="bx2" x="676" y="286" width="140" height="40" rx="7"/><text class="t" x="746" y="306">8.3 Render stills</text>
+<rect class="bx2" x="640" y="380" width="140" height="40" rx="7"/><text class="t" x="710" y="400">8.4 Side by side</text>
+<rect class="bx2" x="483" y="442" width="140" height="40" rx="7"/><text class="t" x="553" y="462">8.5 Measure</text>
+<rect class="bx2" x="277" y="442" width="140" height="40" rx="7"/><text class="t" x="347" y="462">8.6 Critics</text>
+<rect class="bx2" x="120" y="380" width="140" height="40" rx="7"/><text class="t" x="190" y="400">8.7 Log round</text>
+<rect class="bx2" x="85" y="286" width="140" height="40" rx="7"/><text class="t" x="155" y="306">8.8 Send stills</text>
+<rect class="bx3" x="187" y="203" width="140" height="40" rx="7"/><text class="t" x="257" y="223">8.9 Stop check</text>
+<text class="tm" x="300" y="184">fail → next round</text>
+<!-- ship -->
+<rect class="bx3" x="385" y="305" width="130" height="44" rx="7"/><text class="t" x="450" y="327">11 Ship</text>
+<path d="M290 243 L383 312" fill="none" stroke="#fb923c" stroke-width="2" marker-end="url(#ar)"/>
+<text class="tm" x="352" y="268">pass</text>
+<text class="tm" x="450" y="372">only after you approve</text>
+<text class="tm" x="450" y="388">the stills (gate, step 9)</text>
+</svg>
+</div>
+<p>The setup steps (orange row) run one time. The round (teal ring) repeats. The skill expects runs of "10 to 40 hours or more" and rounds of 30 to 90 minutes. <span class="src s">Skill</span></p>
+
+<!-- ============================================================ -->
+<h2 id="setup">4. Phase A: set up the run</h2>
+
+<!-- STEP 1 -->
+<h3>Step 1. Write a short prompt and attach strong references</h3>
+<p><strong>What Leon does.</strong> He starts most big demos with 9 to 12 reference images and a short prompt. <span class="src a">Article</span> The skill lists the real counts: Athenaion (the Greek world) used 9, Shanshui and the golden temple used 10, the alpine lake used 10 to 12. <span class="src s">Skill</span></p>
+<p>For 3D, Leon makes the references himself with GPT Image Gen. Then he tells Opus 5.5 to build or clone them in code. <span class="src a">Article</span> For UI he uses screens of real products, mostly from Mobbin, and posts he sees on X. For motion he uses reference videos. <span class="src a">Article</span></p>
+<p>A reference does not always need a 1:1 copy. For his night city stills, Leon asked for "the same quality and mood, but in its own art style". <span class="src a">Article</span> In that mode the agent matches light, color and detail density, but not the layout. <span class="src s">Skill</span></p>
+
+<div class="card ex"><span class="label">Example</span>
+<p>You make 10 images of the harbor town with GPT Image. You also find 2 drone-style clips for the camera feel. You attach all 12 files and send this prompt. It is the "short version" from <code>templates/brief.md</code>, filled in: <span class="src s">Skill</span></p>
+<pre><code>/cook
+Recreate the 10 attached references in three.js, code only, no assets. Match them 99.9%.
+The 2 clips are for camera motion only.
+At least 8h. Stills after every round, no final render before I approve.
+Questions now, then go cook.</code></pre>
+<p>The prompt has 5 lines. It does not describe the look in words. The images carry the look.</p>
+</div>
+
+<div class="card why"><span class="label">Why</span>
+<p>An image shows light, color, materials, composition and mood together. Words cannot carry those as well. Leon: "a picture is worth a thousand words. The images will show how the light, colors, and materials are, which is hard to describe in words." <span class="src a">Article</span></p>
+<p>A long description also has a second problem: the model can read it as something different from the picture in your head. A reference removes that guess. <span class="src v">Video</span></p>
+<p>The skill tells the agent not to push you to describe the look in words: "A short prompt with strong references beats a long description." <span class="src s">Skill</span></p>
+</div>
+
+<details><summary>Leon's full Greek world prompt (Opus 5.5 xhigh, 9 reference images)</summary>
+<p>This is Leon's real prompt from the article. <span class="src a">Article</span> It is longer than the short version, but it still does not describe the look. Every line sets a bar, a rule or a process.</p>
+<pre><code>Build me a massive, ultra-detailed 3D world in three.js based on the 9 reference images I attached.
+Rules:
+- Zero external assets. Every mesh, texture, shader and effect has to be generated in code.
+- Match the references as closely as possible (aim for 99.9%): composition, scale, materials and
+  especially the colors. Cinematic and realistic, not oversaturated, but also not grey or washed out.
+- Detail everywhere. Nothing should look copy-pasted or simple. Every building, tree, rock and
+  waterfall gets care, and the world has to read as ultra detailed even from far away.
+- Waterfalls and water have to look realistic.
+- My GPU is weak (integrated Radeon 780M), so keep it efficient and get the quality from offline
+  rendering instead.
+- Work only inside this project folder.
+Process:
+- Iterate for as long as it takes (hours or days). Don't stop before it matches the references.
+- Render the matching shots as stills and show them to me first. Don't render the video before I approve.
+- After I approve: render a cinematic ~1 minute showcase video in 4K at 30fps with slow camera moves
+  through the different scenes, no text on screen, impressive from the very first frame, and free
+  cinematic background music from the web (credit the artist).</code></pre>
+</details>
+
+<!-- STEP 2 -->
+<h3>Step 2. Intake: ask every question one time, then never again</h3>
+<p><strong>What the skill does.</strong> The agent first reads everything you gave it. Then it sends one message with only the questions that are still open. Each question has a number and a default, so you can answer by number or reply "defaults". The message ends with: "If you have anything else, tell me now. After this I work without asking until it is done." <span class="src s">Skill</span></p>
+<p>The skill has 10 questions: what and which stack, references (close copy or own style), the bar, time (minimum or maximum), hard rules, the deliverable, hardware, usage limits, permissions (download, push, publish), and "anything else". <span class="src s">Skill</span></p>
+<p>Two special cases: if you say you are leaving ("I'm going to bed, decide everything"), the agent sends no questions and uses the defaults. If you have no idea yet ("surprise me"), the agent researches ideas, offers 3 to 5, and works on the idea with you before the run starts. <span class="src s">Skill</span></p>
+
+<div class="card ex"><span class="label">Example</span>
+<p>Your prompt already answers questions 1 (what and stack), 3 (the bar), 4 (time) and part of 5 (no assets). So the agent asks only the rest:</p>
+<div class="chat">
+<div class="g"><b>Agent, 21:05</b><br>
+2. Recreate the 10 images closely, or match their quality in an own style? Default: recreate closely.<br>
+5. Sound and extra bans? Default: code-made sound only if it truly holds up, otherwise licensed free audio with credits. The default slop ban list.<br>
+6. Deliverable? Default: approved stills, then about 1 minute of video, 1080p 30fps, no text on screen, licensed music.<br>
+7. Hardware? Default: a weak integrated GPU. Realtime kept cheap, quality from offline rendering.<br>
+8. Usage limits? Default: a 5h window, about 20% per hour, about 99% per window, never 100%.<br>
+9. May I download audio, push to a public repo or publish? Default: download free licensed audio only and credit it. Prepare the repo locally, do not push.<br>
+10. Anything else before you leave?<br>
+If you have anything else, tell me now. After this I work without asking until it is done.</div>
+<div class="u"><b>You, 21:12</b><br>2: closely. 7: Radeon 780M laptop. 9: no download, I add the music myself. Rest defaults.</div>
+</div>
+<p>The agent then writes <code>cook/BRIEF.md</code>, copies the template to <code>cook/ROUNDS.md</code>, and logs the start time:</p>
+<pre><code># Brief: harbor-dusk
+
+Target: a harbor town at dusk, recreated from 10 references. Stack: three.js.
+References: cook/refs/R01 to R10, recreate closely. V01, V02 for camera motion only.
+Bar: composition 99.9, light 99.9, color 99.9, materials 99.9, detail near and far 99.9, motion 9/10.
+Calibration offset: none yet.
+Rules: zero external assets. No downloaded audio (user adds music). Default ban list.
+Time: floor 8h. Started: 2026-11-10 21:15.
+Usage: 5h window, about 20% per hour, never 100%.
+Hardware: integrated Radeon 780M. Realtime cheap, final quality offline.
+Deliverable: approved stills, then a 1 minute video at 1080p 30fps, no text on screen.
+Permissions: download no, push no, publish no.
+User's words: "Recreate the 10 attached references in three.js, code only, no assets. Match them 99.9%."</code></pre>
+<p>From now on, the agent never asks. When it must decide something, it decides and writes one line under "Decisions" in <code>ROUNDS.md</code>, for example: "21:20 harbor water level set from R03, because R03 shows the most of the quay."</p>
+</div>
+
+<div class="card why"><span class="label">Why</span>
+<p>The run goes on through the night. Leon: "you DON'T want the agent asking you questions in the middle of the night." <span class="src a">Article</span> A question at 03:00 stops all work until you wake up. The defaults let you answer in about 2 minutes. <span class="src s">Skill</span></p>
+<p>The brief stays short and uses your own words because every line steers the run. The skill gives a real case: one stray line, "There are no photographs", kept the agents from using photos at all. <span class="src s">Skill</span> For the same reason, the agent cleans up a dictated or messy prompt but does not rewrite it or add requirements. <span class="src s">Skill</span></p>
+</div>
+
+<!-- STEP 3 -->
+<h3>Step 3. Target: turn every reference into a shot</h3>
+<p><strong>What the skill does.</strong> The references are "the minimum bar, not inspiration". The agent studies every reference at full size before it writes code. <span class="src s">Skill</span> It copies them into <code>cook/refs/</code> with stable names (R01, R02 for images; V01, V02 for videos) and keeps the original filenames in the brief. Then it writes <code>cook/SHOTS.md</code>: one shot per reference image, with the camera, the framing, the time of day, what to take from the image, and what to watch for. <span class="src s">Skill</span></p>
+
+<div class="card ex"><span class="label">Example</span>
+<p><code>cook/SHOTS.md</code>, first 3 of 10 rows:</p>
+<div class="tw"><table>
+<tr><th>Shot</th><th>Ref</th><th>Shows</th><th>Camera</th><th>Take from it</th><th>Watch for</th></tr>
+<tr><td>S01</td><td>R01</td><td>The harbor from the sea, town on the slope</td><td>Low, 35mm, looking east, sun behind the camera</td><td>Warm light on the walls, blue-violet shadows, water reflections</td><td>Each house must differ; no copy-paste roofs</td></tr>
+<tr><td>S02</td><td>R02</td><td>Half-wide view over the roofs to the far hills</td><td>High, 50mm, looking north</td><td>Haze layers, roof color variety</td><td>Far hills need trees and terraces, not a flat color</td></tr>
+<tr><td>S03</td><td>R03</td><td>The quay at eye level, boats at the wall</td><td>1.6 m high, 28mm</td><td>Wet stone, foam at the wall, rope and paint detail</td><td>Water must not look like plastic</td></tr>
+</table></div>
+<p>One reference can lead on one thing and be ignored on another. Here R02 leads on haze, and R03 leads on materials.</p>
+</div>
+
+<h4>Motion references: frame by frame</h4>
+<p>Leon tells the model three things about reference videos: analyze every video frame by frame; write down every small effect, transition and timing in a list; take inspiration from all of them, but never copy one element 1:1. <span class="src a">Article</span></p>
+<p>The skill adds the commands and the numbers. It extracts frames at 10 fps, and every frame near cuts. It makes contact sheets to see the rhythm. It writes one line per effect into <code>cook/MOTION.md</code>. Then it picks a core of about 20 strong effects plus 50 to 80 small ones, from many references. It never names the source clips in public files. <span class="src s">Skill</span></p>
+
+<div class="card ex"><span class="label">Example</span>
+<pre><code>ffmpeg -i cook/refs/V01.mp4 -vf fps=10 cook/refs/V01/f_%04d.png
+ffmpeg -i cook/refs/V01.mp4 -vf "fps=2,scale=480:-1,tile=6x5" cook/refs/V01_sheet_%02d.png</code></pre>
+<p>Two lines from <code>cook/MOTION.md</code>:</p>
+<pre><code>V01 00:03.2-00:07.8 | camera rises past a stone wall, view opens | ease-in-out, ~4.6 s, upward | the reveal hides the town, then shows it all
+V02 00:11.0-00:12.4 | camera drifts sideways while it moves forward | slight lateral drift | it feels hand-flown, not on a rail</code></pre>
+</div>
+
+<div class="card why"><span class="label">Why</span>
+<p>The agent needs a fixed goal before it builds. Then its job is only to match that goal as closely as it can. <span class="src v">Video</span> A shot list with fixed cameras also makes every round comparable: the same frame, from the same position, every time. <span class="src s">Skill</span></p>
+<p>For motion, the skill says "All the text moves like this" is about 1% of what a reference video holds. A frame-by-frame list captures the other small things: timing, easing, direction. Taking from many sources keeps the result original. <span class="src s">Skill</span></p>
+</div>
+
+<!-- STEP 4 -->
+<h3>Step 4. Bar: set a number for each dimension</h3>
+<p><strong>What Leon does.</strong> He writes a number into the prompt: "Match the references as closely as possible (aim for 99.9%)" for the Greek world, and "98% close to the reference images is the minimum bar" for the pianist film. For video he uses ratings: "the reference videos are about an 8.5/10, yours needs to reach at least 9/10". <span class="src a">Article</span></p>
+<p>The skill splits the bar into dimensions and scores each one separately. <span class="src s">Skill</span></p>
+<div class="tw"><table>
+<tr><th>Dimension</th><th>What the critics check</th><th>Typical failure</th></tr>
+<tr><td>Composition</td><td>Framing, scale, horizon, focal point, layout</td><td>Subject too small, empty foreground, wrong lens</td></tr>
+<tr><td>Light</td><td>Direction, softness, shadows, atmosphere, time of day</td><td>Flat light, no haze, hard shadows</td></tr>
+<tr><td>Color</td><td>Hue, saturation and brightness per region</td><td>Grey and washed out, or oversaturated</td></tr>
+<tr><td>Materials</td><td>How water, stone, foliage, metal and skin take light</td><td>Plastic look, flat water</td></tr>
+<tr><td>Detail density</td><td>Near and far, variety, no visible repetition</td><td>Bare trees in the distance, copy-pasted rocks</td></tr>
+<tr><td>Motion</td><td>Timing, easing, transitions, camera moves</td><td>Linear moves, cheap transitions, jitter</td></tr>
+</table></div>
+<p>Stills get 0 to 100 (similarity to the reference). Video and motion get 1 to 10. <span class="src s">Skill</span></p>
+
+<h4>Calibration: your estimate corrects the scores</h4>
+<p>Leon: "If it says it's at 90% and I think it's at 60-70%, I tell it exactly that, so it knows how high my expectations are." <span class="src a">Article</span> The skill turns this into arithmetic. The gap between your estimate and the reported score becomes an offset. In Leon's example the offset is about −25. The agent subtracts it from every later critic score until you give a new estimate. <span class="src s">Skill</span></p>
+<p>The skill also keeps two kinds of numbers apart. A <strong>measured</strong> number came from a command in this round. An <strong>eyeballed</strong> number came from a person or a model. A similarity percentage is eyeballed unless a command computed it. <span class="src s">Skill</span></p>
+
+<div class="card ex"><span class="label">Example</span>
+<p>The brief says 99.9 for each still dimension and 9/10 for motion. No offset yet. Step 8 shows the offset being set at 23:40.</p>
+</div>
+
+<div class="card why"><span class="label">Why</span>
+<p>"Make it look good" gives the agent no point where the work is done. A number does. <span class="src a">Article</span></p>
+<p>Leon says 99.9% is probably not realistic, and that is the purpose: "the number tells the model that the job is not done when it first works." <span class="src a">Article</span> The video rating works the same way. 9/10 is above the 8.5 of the references, and Leon calls it "not an achievable goal". But AI rates its own work too high, so a target above the references pushes it further. <span class="src a">Article</span></p>
+<p>One number per dimension, not one total, means "the weakest dimension cannot hide behind the others." <span class="src s">Skill</span> The calibration offset is necessary because models rate their own work too high, and critic agents "share some of that bias". <span class="src s">Skill</span></p>
+</div>
+
+<!-- STEP 5 -->
+<h3>Step 5. Rules: code only, honest sound, ban the slop</h3>
+<h4>Zero external assets</h4>
+<p>Leon's rule: "Use zero external assets. Every mesh, texture, shader and effect has to be generated in code." <span class="src a">Article</span> He gives two reasons: it is the impressive part ("people often don't believe it"), and "it forces the model to actually build things instead of downloading a tree". So the demo shows what the model can really do. <span class="src a">Article</span> If anything external is used, it goes in the credits. It is never hidden. <span class="src s">Skill</span></p>
+<p>Exceptions: code-made music sometimes holds up (the Chinese landscapes, the alpine lake), but code-made sound effects often sound cheap, especially in launch videos. Then Leon uses professional free sound libraries and credits them. For launch videos, real logos and real photos look better than SVG people. <span class="src a">Article</span></p>
+
+<h4>The slop ban list</h4>
+<p>"Every prompt has a list of things the model is not allowed to use." <span class="src a">Article</span> The combined list from the article and the skill:</p>
+<ul>
+<li>eyebrow labels; monospace uppercase text; random serif fonts</li>
+<li>beige; purple gradients, and purple as a default accent <span class="src s">Skill</span></li>
+<li>01 / 02 / 03 counters; glowing orbs; shockwave rings popping out of things</li>
+<li>decorative particles; long thin decorative lines <span class="src s">Skill</span></li>
+<li>em dashes in any text</li>
+<li>in motion: generic moves, for example an icon that floats up for no reason <span class="src s">Skill</span></li>
+<li>in sound: rising-pitch whips and cheap synth bells <span class="src s">Skill</span></li>
+</ul>
+<p>Films and world showcases usually get no text on screen at all. <span class="src s">Skill</span></p>
+
+<h4>Color, detail and a weak GPU</h4>
+<p>Color must match the references: not grey, not washed out, not oversaturated. The skill calls color "one of the most important things and the most common failure". If everything is grey, the agent checks the pipeline first (output color space, tone mapping, exposure, fog color) before it repaints materials. <span class="src s">Skill</span></p>
+<p>Detail: every building, tree and rock varies in shape, color and scale. The world must look detailed from far away, so the agent never cuts the draw distance in final renders. <span class="src s">Skill</span></p>
+<p>A weak GPU is not a reason for lower quality. The realtime preview stays cheap. Stills and the final video render offline, frame by frame, at full quality. The method is <strong>sub-frame accumulation</strong>: render several sub-frames for each output frame and average them. Each sub-frame moves one thing a small amount: the time inside the shutter (gives motion blur), the light position (soft shadows), the lens position (depth of field), or the sub-pixel offset (anti-aliasing). Animation is driven by the frame number, not the wall clock, so every render is the same. <span class="src s">Skill</span></p>
+
+<div class="card ex"><span class="label">Example</span>
+<p>For the harbor, the rules mean:</p>
+<ul>
+<li>Houses, boats, stone, water and sky are all made in code. No downloaded textures or HDRI sky.</li>
+<li>No text on screen. No decorative particles: the agent does not add floating sparks "for atmosphere" that the references do not show.</li>
+<li>The lanterns on the quay are allowed, because R03 shows them. A glowing orb with no source in the references is not allowed.</li>
+<li>The realtime preview runs at a low resolution. Each still renders offline with 16 sub-frames.</li>
+<li>You add the music, because the brief says "download no".</li>
+</ul>
+</div>
+
+<div class="card why"><span class="label">Why</span>
+<p>The banned patterns are the details that show at once that AI made a page. <span class="src v">Video</span> When you name them, the agent stops using them. The color rule is there because "too grey" is Leon's most common feedback on 3D builds. <span class="src a">Article</span> The offline path is there because Leon renders on an integrated Radeon 780M. <span class="src a">Article</span></p>
+</div>
+
+<!-- STEP 6 -->
+<h3>Step 6. Time: a minimum or a maximum, and pace the usage</h3>
+<p><strong>What Leon does.</strong> "The same model gives you something completely different in 20min vs 20h." So he always gives a time budget. For demos it is a minimum: "This task should take at least 8h. If you are done after 2h, something is wrong." For big builds he says it might take days. Small jobs get a hard cap, for example "max 1.5h", because "otherwise it will work for wayy too long". <span class="src a">Article</span></p>
+<p>The Greek world took about 45 h in total, 55 subagents (up to 12 in parallel), about 45k lines of JavaScript, about 11M output tokens, and about $1.8k to $2.3k at Opus 5.5 API prices. It ran on a Max plan. <span class="src a">Article</span></p>
+<p><strong>Usage pacing.</strong> Leon tells the agent to "use about 99% of the 5h limit in those 5h, but never hit 100%". <span class="src a">Article</span> The skill turns that into about 20% of the window per hour. At each round boundary the agent compares its usage with that pace. Ahead of pace: fewer parallel subagents, more planning and critique. Behind pace: more parallel subagents. Near the end of a window, it finishes the current step and writes the ledger, so a hard stop never lands in the middle of a change. <span class="src s">Skill</span></p>
+<p><strong>Depth over breadth.</strong> The agent makes one shot exceptional before it expands. "A small exceptional level beats a large mediocre one." <span class="src s">Skill</span></p>
+
+<div class="card ex"><span class="label">Example</span>
+<p>Start 21:15, floor 8h. So the earliest stop is 05:15. The first usage window runs 21:15 to 02:15.</p>
+<p>At 23:05, 1 h 50 min into the window, the pace allows about 37% (1.83 h × 20%). The agent reads 47%. It is ahead of pace, so it reduces the parallel builders in round 2 from 6 to 3.</p>
+</div>
+
+<div class="card why"><span class="label">Why</span>
+<p>Without a minimum, the agent "stops as soon as the page works, which is before the page looks as good as it can". <span class="src v">Video</span> Without pacing, Leon says, "it burns everything in 2h and waits for 3h". <span class="src a">Article</span></p>
+<p>Some models stop early and write a summary. Leon names Argon and, earlier, Opus 5. His <code>/unlazy</code> skill fixes that: split the task into subtasks, split those again a few layers deep, and give every leaf as much effort as the whole task would normally get. He says this is "not really necessary for newer models like Opus 5.5". <span class="src a">Article</span> Cook lists <code>/unlazy</code> as an optional companion. <span class="src s">Skill</span></p>
+</div>
+
+<!-- STEP 7 -->
+<h3>Step 7. Build the harness before round 1</h3>
+<p><strong>What the skill does.</strong> Before round 1, the agent builds the tools that every round reuses: <span class="src s">Skill</span></p>
+<ol>
+<li>A fixed camera preset for each shot: position, target, field of view, time of day.</li>
+<li>A still renderer that writes <code>cook/stills/rNN/S01.png</code> and so on, with the offline quality path, at the aspect ratio of the reference.</li>
+<li>A side-by-side script: reference left, render right. The skill includes one, <code>scripts/side-by-side.mjs</code> (needs Node 18+ and ffmpeg).</li>
+<li>A color check (Python, Pillow, NumPy). It compares mean saturation and brightness on a 4×4 grid, reference against render.</li>
+<li>For video: a contact-sheet renderer and a short-clip renderer.</li>
+</ol>
+
+<div class="card ex"><span class="label">Example</span>
+<p>The camera presets in the harbor project (the file name is my choice; the skill does not set one):</p>
+<pre><code>// shots.js — one fixed camera per reference
+export const SHOTS = {
+  S01: { pos: [-42, 6.5, 88],  target: [0, 4, 0],   fov: 38, hour: 19.4, aspect: 16/9 },
+  S02: { pos: [-10, 48, -20],  target: [0, 12, -260], fov: 27, hour: 19.4, aspect: 16/9 },
+  S03: { pos: [6, 1.6, 14],    target: [0, 1.2, 0], fov: 54, hour: 19.5, aspect: 16/9 },
+  // ... S04 to S10
+};</code></pre>
+<p>The side-by-side command for round 1:</p>
+<pre><code>node &lt;skill&gt;/scripts/side-by-side.mjs --out cook/compare/r01/all.jpg \
+  cook/refs/R01.png cook/stills/r01/S01.png \
+  cook/refs/R02.png cook/stills/r01/S02.png \
+  cook/refs/R03.png cook/stills/r01/S03.png</code></pre>
+<p>The script fits each image into the same 16:9 box (default 540 px high) with black bars, so it never stretches an image. Each pair becomes one row. <span class="src s">Skill</span></p>
+</div>
+
+<div class="card why"><span class="label">Why</span>
+<p>The harness makes each round cheap to check. Fixed cameras give the identical framing every round, so a score change comes from the work and not from a moved camera. The color check catches "too grey" with a number "before the user has to say it". <span class="src s">Skill</span></p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="rounds">5. Phase B: the rounds (step 8)</h2>
+<p>Each round has 9 sub-steps. <span class="src s">Skill</span> Round 1 below shows all 9 in detail. Rounds 2 to 10 show only what is new in them.</p>
+
+<h3>Round 1 (21:55 to 23:05): all 9 sub-steps</h3>
+
+<h4>8.1 Focus</h4>
+<p>The skill picks the focus in this order: (1) open items in your feedback inbox; (2) any shot with a dimension far below the bar; (3) the dimension with the largest total gap across all shots; (4) far distance and detail density, "which are easy to forget". <span class="src s">Skill</span></p>
+<div class="card ex"><span class="label">Example</span>
+<p>Nothing exists yet, so round 1 builds the base world: terrain, sea, sky, and a rough version of the town. Every shot can then render, so every later round has something to compare.</p>
+</div>
+
+<h4>8.2 Fix it in depth, with parallel subagents</h4>
+<p>Independent parts go to parallel subagents. Each builder gets the brief, the shots it owns, the files it may change, and its done condition. The main agent stays the owner: it integrates the parts, decides, and keeps the ledger. <span class="src s">Skill</span></p>
+<div class="card ex"><span class="label">Example</span>
+<p>6 builders run in parallel: terrain, sea surface, sky and fog, houses, boats, and the quay wall. The houses builder owns <code>town/*.js</code> and S01 and S02. Its done condition: "every house differs in height, roof pitch and wall color; S01 renders with no error."</p>
+</div>
+
+<h4>8.3 Render stills</h4>
+<p>The agent renders each shot from its camera preset, with the same framing and aspect as the reference. For motion it renders contact sheets and short clips. <span class="src s">Skill</span></p>
+
+<h4>8.4 Make side-by-side images</h4>
+<p>Reference left, render right, one row per shot. These images are the only input the critics get.</p>
+
+<h4>8.5 Measure what a command can measure</h4>
+<p>Color per region, frame time, seconds per rendered frame. <span class="src s">Skill</span></p>
+<div class="card ex"><span class="label">Example</span>
+<pre><code>python color_check.py cook/refs/R01.png cook/stills/r01/S01.png
+saturation: mean delta -0.118, worst cell -0.204
+brightness: mean delta -0.041, worst cell -0.097</code></pre>
+<p>A negative saturation delta means the render is greyer than the reference. <span class="src s">Skill</span> −0.118 is a large gap: S01 is clearly too grey.</p>
+</div>
+
+<h4>8.6 Score with fresh-context critics</h4>
+<p>A critic is a new subagent with no history, no code, no brief and not the builder's own score. It does not learn who built the work, how long it took, or what the builder thinks of it. It gets only the side-by-side images and the rubric. <span class="src s">Skill</span></p>
+<p>At least 2 critics per round, 3 or more for big builds. A different model as one of them helps. The agent takes the median per dimension. If two critics differ by more than 10 points (or 1.0 on a 10-point scale), it adds another critic. The builder's own score is logged but never decides anything. <span class="src s">Skill</span></p>
+<p>Leon: "The agent that built something is the worst judge of its own work." His prompt line: "Rate it with subagents that have no context. Don't stop before it reaches 9.2/10." He also uses other models, for example GPT 6.1 Sol to judge Opus 5.5's work. <span class="src a">Article</span></p>
+<div class="card ex"><span class="label">Example</span>
+<p>The critic prompt, from <code>references/loop-and-critics.md</code>, with the bar filled in:</p>
+<pre><code>You are a strict art director seeing this work for the first time.
+Each image shows a reference on the left and a render on the right.
+For each image, score how close the right side is to the left side, 0 to 100, on:
+composition, light, color, materials, detail density (near and far).
+100 means a viewer could not tell which one is the reference. The bar is [99].
+Then list the 3 biggest gaps per image: where (region), what is wrong, what to change.
+End with the single weakest area across all images.
+Format:
+S01: composition NN, light NN, color NN, materials NN, detail NN
+S01 gaps: 1) ... 2) ... 3) ...
+Weakest: ...</code></pre>
+<p>Critic A (same model) and critic B (a different model) answer for S01:</p>
+<pre><code>A  S01: composition 72, light 60, color 50, materials 57, detail 50
+B  S01: composition 68, light 56, color 54, materials 53, detail 48
+   S01 gaps: 1) whole frame: walls and sea are grey, the reference is warm orange and teal
+             2) far hills: one flat color, no trees or terraces  3) roofs: all the same red</code></pre>
+<p>No dimension differs by more than 10, so 2 critics are enough. The median of 2 values is their mean: composition 70, light 58, color 52, materials 55, detail 49. The builder's own estimate was 78. It is logged and does not count.</p>
+</div>
+
+<h4>8.7 Log the round</h4>
+<p>The agent adds one entry to <code>cook/ROUNDS.md</code> and labels every number as measured or eyeballed. <span class="src s">Skill</span></p>
+<div class="card ex"><span class="label">Example</span>
+<pre><code>## Round 01
+
+Time: 21:55 to 23:05 | total elapsed 1h50
+Usage: 47% of window (pace allows ~37%)
+Focus: base world, because nothing existed
+
+Changes:
+- terrain, sea, sky and fog, town blockout (84 houses), 7 boats, quay wall
+
+Stills: cook/stills/r01/ | Side by side: cook/compare/r01/
+
+Scores, eyeballed: critic median, no calibration yet (2 critics, same model + 1 other model)
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs last round |
+| S01  | 70   | 58    | 52    | 55        | 49     |   -    | first round   |
+
+Own score (logged, never decides): 78
+
+Measured (command and result):
+- color check S01: saturation delta -0.118, brightness delta -0.041
+- render: 41 s per still at 1920x1080, 16 sub-frames
+
+Not checked this round:
+- motion, because no camera path exists yet
+
+Top gaps from critics:
+1. S01, whole frame: too grey; reference is warm orange light and teal shadows
+2. S02, far hills: flat color, no trees or terraces
+3. S01, roofs: all the same red
+
+Stop check: bar no | floor no | stills approved no | final checked no -> next round
+Next focus: color pipeline, all shots</code></pre>
+</div>
+
+<h4>8.8 Send the stills, and do not wait</h4>
+<p>After every round the agent sends the stills with a short note: what changed, scores, next focus. It does not pause and does not end its turn to wait for a reply. <span class="src s">Skill</span> Leon: "It works in rounds and sends me screenshots after each round, without pausing. I give feedback whenever I get the chance to look at Claude's work, and it keeps going." <span class="src a">Article</span></p>
+<div class="card ex"><span class="label">Example</span>
+<pre><code>Round 1, 1h50 in (floor 8h). Stills: cook/stills/r01/  Side by side: cook/compare/r01/
+Changed: base world: terrain, sea, sky, town blockout, boats, quay.
+Scores (critic median, not calibrated yet): composition 70, light 58, color 52, materials 55, detail 49.
+Measured: S01 saturation delta -0.118, greyer than the reference.
+Next: color pipeline (tone mapping, output color space, fog color), then far hills in S02.</code></pre>
+</div>
+
+<h4>8.9 Run the stop check</h4>
+<p>It fails (section 6 explains the check). So round 2 starts at once.</p>
+
+<div class="card why"><span class="label">Why the round has this shape</span>
+<ul>
+<li><strong>Focus on the weakest part:</strong> it moves the lowest score, and your feedback always comes first.</li>
+<li><strong>Side-by-side images:</strong> Leon's Greek world "looks pretty impressive, but the moment you put it next to the references it suddenly doesn't look THAT good anymore." <span class="src a">Article</span> The comparison shows the gap that a single image hides.</li>
+<li><strong>Measured numbers:</strong> a command cannot be too generous. A critic can.</li>
+<li><strong>Fresh critics:</strong> the builder made every choice, so it cannot judge them fairly. <span class="src v">Video</span></li>
+<li><strong>The ledger:</strong> "Never claim a check that was not run. If something was not measured, write 'not measured'." <span class="src s">Skill</span></li>
+</ul>
+</div>
+
+<h3>Round 2 (23:05 to 00:10): fix the pipeline, and a critic spread</h3>
+<div class="card ex"><span class="label">Example</span>
+<p><strong>Focus:</strong> color, because it has the largest total gap. The skill says: if everything is grey, check the pipeline before you repaint materials. The agent finds two causes: the output color space was linear, not sRGB, and the fog color was neutral grey. It sets sRGB output, ACES tone mapping with a new exposure, and a warm fog color taken from R02.</p>
+<p><strong>Measured:</strong> S01 saturation delta goes from −0.118 to −0.031.</p>
+<p><strong>Critic spread:</strong> critic A gives color 88, critic B gives color 74. They differ by 14, which is more than 10. So the agent adds critic C, which gives 84. The median of 74, 84 and 88 is 84.</p>
+<p><strong>Scores (S01 medians):</strong> composition 90, light 86, color 84, materials 82, detail 78. Mean 84.</p>
+</div>
+
+<h3>23:40: your feedback, and the calibration offset</h3>
+<p>Leon's rule for feedback: give the agent a target. "Make it better" does not work. A target is a color, a timecode, a marked screenshot, or a distance. <span class="src a">Article</span> The skill logs your exact words in the inbox, handles them before critic items, and closes an item only with a still or clip that proves the fix. <span class="src s">Skill</span></p>
+<div class="card ex"><span class="label">Example</span>
+<p>You look at the round 2 stills before you go to sleep:</p>
+<div class="chat">
+<div class="u"><b>You, 23:40</b><br>Honestly this is 60 to 65%, not 84. The water at the quay in S03 looks like plastic. The far hills in S02 look empty in the half-wide shot. Going to sleep.</div>
+</div>
+<p>The agent does three things in the ledger:</p>
+<ol>
+<li>It logs 2 inbox items with your exact words: S03 water, S02 far hills.</li>
+<li>It sets the calibration offset. Your estimate is 62.5 (the middle of 60 to 65). The reported mean was 84. Offset = 62.5 − 84 = −21.5, logged as <strong>−21</strong>.</li>
+<li>It recalculates: round 2 calibrated is composition 69, light 65, color 63, materials 61, detail 57.</li>
+</ol>
+<p>It does not reply with questions. You are asleep.</p>
+</div>
+<div class="card why"><span class="label">Why</span>
+<p>The critics gave 84. You gave 62.5. "The user's estimate is the truth." <span class="src s">Skill</span> Without the offset, the agent would think it is at 84 and would aim too low. With it, every later score shows how far the work really is from your bar.</p>
+</div>
+
+<h3>Round 3 (00:10 to 01:25): your feedback first</h3>
+<div class="card ex"><span class="label">Example</span>
+<p><strong>Focus:</strong> the S03 water, because inbox items come before critic items. 3 subagents work in parallel: the water shader, the foam at the stone wall, and the reflections of the houses.</p>
+<p><strong>Proof:</strong> the agent renders S03 before and after, side by side, and closes the inbox item with the path to that image.</p>
+<p><strong>Scores (S01, calibrated):</strong> mean 65.</p>
+</div>
+
+<h3>Round 4 (01:25 to 02:40): the far distance</h3>
+<div class="card ex"><span class="label">Example</span>
+<p><strong>Focus:</strong> the S02 far hills (your second inbox item). The agent adds terraces, olive trees with 3 shapes and color variation for each tree, and stone walls between fields. It renders everything to the horizon, because the rules say never to cut the draw distance in final renders.</p>
+<p><strong>Scores (S01, calibrated):</strong> mean 67. This is now "Best so far" in the ledger. The project uses git, so the agent commits locally at the end of the round.</p>
+<p>At 02:40 the context compacts. Section 9 shows how the agent continues.</p>
+</div>
+
+<h3>Round 5 (02:45 to 03:50): a score drops, so the agent goes back</h3>
+<div class="card ex"><span class="label">Example</span>
+<p><strong>Focus:</strong> detail on the houses (balconies, shutters, wash lines).</p>
+<p><strong>Result:</strong> detail goes up, but light in S01 drops from 70 to 64. The critics say the new balconies cast hard black shadows, and the reference has soft ones.</p>
+<p><strong>Action:</strong> the skill says "If a round lowers a score, fix it or go back to the best round before moving on, and log why." The agent goes back to the round 4 commit and logs: "03:50 reverted to r04: r05 balconies dropped S01 light 70 to 64 (hard shadows). Redo with soft shadows in r06."</p>
+</div>
+
+<h3>Rounds 6 to 8 (03:50 to 07:20): the floor passes, the bar does not</h3>
+<div class="card ex"><span class="label">Example</span>
+<ul>
+<li><strong>Round 6:</strong> the balconies again, now with soft shadows from sub-frame accumulation (the light position moves a little in each sub-frame). S01 calibrated mean 69.</li>
+<li><strong>Round 7:</strong> the 8 h floor passes at 05:15. The bar is not met (calibrated about 70 against 99.9), so the run continues. The agent runs a <strong>blind pair test</strong>: it shows a critic the reference and the render with no labels and asks which one was made in code. The critic picks correctly and says: "the roof tiles repeat in a grid". That becomes the next focus. <span class="src s">Skill</span></li>
+<li><strong>Round 8:</strong> roof tiles get random offset and color per tile. The agent also renders a 12-second test clip along the camera path from MOTION.md and runs the video critic prompt: "Strong reference films in this style rate about 8.5." Two critics give 7.4 and 7.9 for motion and transitions.</li>
+</ul>
+</div>
+
+<h3>07:10: feedback you cannot put into words</h3>
+<p>Leon: "if you can't say what you don't like, go ask the model to describe what it built. Then you'll probably have the words for it." <span class="src a">Article</span></p>
+<div class="card ex"><span class="label">Example</span>
+<div class="chat">
+<div class="u"><b>You, 07:10</b><br>The sky in S04 should be way more orange near the horizon. And the boats feel wrong, but I can't say why.</div>
+<div class="g"><b>Agent, 07:12</b> (it answers, logs both items, and keeps working)<br>The boats: 7 boats, all from 1 hull mesh, scaled 0.9 to 1.1. All have the same white paint, #f2f2f0. All point in the same direction, 270°. None has a reflection that breaks up on the waves.</div>
+<div class="u"><b>You, 07:15</b><br>That's it. Use 3 hull shapes, different paint colors, turn them at different angles.</div>
+</div>
+<p>Now the feedback has a target. Round 9 handles both items before any critic item.</p>
+</div>
+
+<h3>Rounds 9 and 10 (07:20 to 09:50)</h3>
+<div class="card ex"><span class="label">Example</span>
+<ul>
+<li><strong>Round 9:</strong> S04 sky color and the boats. Both inbox items close with proof stills. S01 calibrated mean 73.</li>
+<li><strong>Round 10:</strong> polish of light in S01 to S03. S01 calibrated mean 74. Raw critic mean 95.</li>
+</ul>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="gate">6. Phase C: the gate and the stop check (steps 9 and 10)</h2>
+
+<h3>Step 9. The gate: no final render before you approve</h3>
+<p>Leon adds: "Render the matching shots as stills and show them to me first. Don't render the video before I approve." <span class="src a">Article</span> The skill: "Never start the final render, or any other long and costly export, before the user approves the stills in chat. While you wait, keep refining and test the render pipeline on a few short frames." <span class="src s">Skill</span></p>
+<div class="card why"><span class="label">Why</span>
+<p>Rendering costs hours. The final 4K render of the Greek world took about 13 h of GPU time on Leon's integrated GPU. <span class="src a">Article</span> If the stills are wrong, all those hours are lost. A still costs seconds or minutes.</p>
+</div>
+<div class="card ex"><span class="label">Example</span>
+<div class="chat"><div class="u"><b>You, 10:05</b><br>Stills approved. Render it.</div></div>
+</div>
+
+<h3>Step 10. The stop check</h3>
+<p>The agent stops only when all three are true: <span class="src s">Skill</span></p>
+<ol>
+<li>Every dimension in every shot meets the bar, by critic median after calibration.</li>
+<li>The time floor is reached (capped jobs have no floor).</li>
+<li>You approved the stills, and the final deliverable is rendered and its file is checked.</li>
+</ol>
+<p>If the bar looks met before the floor, the skill says the bar "was read too low": the agent rereads the references at full size, checks far distance, color and the weakest shot, and starts another round. If a hard cap or a usage stop comes first, it finishes the round, logs it, and reports plainly what is still below the bar. <span class="src s">Skill</span></p>
+<div class="card ex"><span class="label">Example</span>
+<p>The stop check after round 10, before and after the render:</p>
+<div class="tw"><table>
+<tr><th>Condition</th><th>After round 10 (09:50)</th><th>After the final render (14:00)</th></tr>
+<tr><td>Bar met (calibrated)</td><td>No: 74 against 99.9</td><td>No: 74 against 99.9</td></tr>
+<tr><td>Floor reached</td><td>Yes: 12 h 35 min, floor 8 h</td><td>Yes</td></tr>
+<tr><td>Stills approved, final file checked</td><td>No</td><td>Yes</td></tr>
+</table></div>
+<p>See section 12, item 1, about the bar condition that stays false.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="ship">7. Phase D: ship (step 11)</h2>
+<p><strong>What the skill does before the final render:</strong> <span class="src s">Skill</span></p>
+<ol>
+<li>Test the pipeline at final settings on 3 to 5 seconds: correct frames, correct timing, audio in sync, the file plays.</li>
+<li>Measure seconds per frame and estimate the full render. Put the estimate in the progress note.</li>
+<li>Write frames to disk and skip existing frames on restart, so a crash or a usage stop does not cost the whole render.</li>
+<li>Encode at the end and add the audio.</li>
+<li>Check the final file with ffprobe: resolution, fps, duration, an audio stream. Export the first frame and look at it. Make a contact sheet.</li>
+</ol>
+<div class="card ex"><span class="label">Example</span>
+<p>The 4-second test renders 120 frames at 6.8 s per frame (1080p, 16 sub-frames). The full video is 60 s × 30 fps = 1,800 frames. 1,800 × 6.8 s = 12,240 s, about 3.4 h. The agent reports: "Final render estimate 3.4 h, start 10:25, end about 13:50."</p>
+<pre><code>ffmpeg -framerate 30 -i frames/%05d.png -i music.wav -c:v libx264 -pix_fmt yuv420p -crf 16 \
+  -c:a aac -b:a 320k -shortest -movflags +faststart final.mp4
+
+ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame_rate:format=duration \
+  -of compact final.mp4
+
+ffmpeg -i final.mp4 -frames:v 1 cook/first_frame.png</code></pre>
+<p><code>music.wav</code> is the track you added, because the brief said "download no".</p>
+</div>
+
+<h3>The video rules for X</h3>
+<ul>
+<li>The first frame is the thumbnail and must be impressive alone. The first 1.5 seconds are the cover image. <span class="src s">Skill</span></li>
+<li>The best scene comes first. Then reveal more step by step, for example from behind a rock, then the camera rises. <span class="src s">Skill</span></li>
+<li>A new place every 6 to 7 seconds. Slow, cinematic camera moves. No text on screen. <span class="src s">Skill</span></li>
+<li>Licensed, free music, credited. 30 to 60 seconds. 1080p 30 fps is enough for X. <span class="src s">Skill</span></li>
+</ul>
+<div class="card why"><span class="label">Why</span>
+<p>On X, the first frame decides if people watch, so it gets the best scene. The test render and the frames on disk protect hours of GPU time from one error. The ffprobe check follows the rule "Measure, do not assume". <span class="src s">Skill</span></p>
+</div>
+
+<h3>A public repo, only if the brief allows it</h3>
+<p>If the brief allows a push, the agent prepares a README, a <code>docs/PROMPT.md</code> with your real prompt (merged and cleaned up, not rewritten), credits, and honest numbers. Estimates are marked as estimates. It publishes only references that you made or own. Before anything goes public, it scans for keys and private data, for example with <code>git grep -nIE "(sk-[A-Za-z0-9]|api[_-]?key|secret|token|BEGIN [A-Z ]*PRIVATE KEY)"</code>. The prompt file has the highest risk, because real prompts sometimes contain a pasted key. Posting is your action, not the agent's. <span class="src s">Skill</span></p>
+<div class="card ex"><span class="label">Example</span>
+<p>The brief says "push no". So the agent prepares the repo locally and tells you that it is ready. It does not push.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="timeline">8. The full example timeline</h2>
+<p>All rows are <span class="src e">Example</span>. Calibrated scores use the offset −21 from 23:40. Round 1 used no offset when it ran; the value here is recalculated for comparison.</p>
+<div class="tw"><table>
+<tr><th>Time</th><th>Elapsed</th><th>Event</th><th>Focus</th><th>S01 raw mean</th><th>S01 calibrated</th><th>S01 saturation delta</th></tr>
+<tr><td>21:00 to 21:15</td><td>0</td><td>Prompt, intake, brief</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
+<tr><td>21:15 to 21:55</td><td>0h40</td><td>Target, shots, motion list, harness</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
+<tr><td>21:55 to 23:05</td><td>1h50</td><td>Round 1</td><td>Base world</td><td>57</td><td>36</td><td>−0.118</td></tr>
+<tr><td>23:05 to 00:10</td><td>2h55</td><td>Round 2</td><td>Color pipeline</td><td>84</td><td>63</td><td>−0.031</td></tr>
+<tr><td>23:40</td><td>–</td><td>You: "60 to 65%", water, far hills</td><td>Offset −21</td><td>–</td><td>–</td><td>–</td></tr>
+<tr><td>00:10 to 01:25</td><td>4h10</td><td>Round 3</td><td>S03 water (inbox)</td><td>86</td><td>65</td><td>−0.024</td></tr>
+<tr><td>01:25 to 02:40</td><td>5h25</td><td>Round 4, best so far</td><td>S02 far hills (inbox)</td><td>88</td><td>67</td><td>−0.022</td></tr>
+<tr><td>02:40</td><td>–</td><td>Context compaction, resume</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
+<tr><td>02:45 to 03:50</td><td>6h35</td><td>Round 5, reverted</td><td>House detail</td><td>87</td><td>66</td><td>−0.023</td></tr>
+<tr><td>03:50 to 05:00</td><td>7h45</td><td>Round 6</td><td>Detail, soft shadows</td><td>90</td><td>69</td><td>−0.019</td></tr>
+<tr><td>05:00 to 06:10</td><td>8h55</td><td>Round 7, floor passes 05:15</td><td>Blind pair test</td><td>91</td><td>70</td><td>−0.017</td></tr>
+<tr><td>06:10 to 07:20</td><td>10h05</td><td>Round 8</td><td>Roof tiles, test clip</td><td>93</td><td>72</td><td>−0.015</td></tr>
+<tr><td>07:10</td><td>–</td><td>You: S04 sky, boats</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
+<tr><td>07:20 to 08:40</td><td>11h25</td><td>Round 9</td><td>Sky, boats (inbox)</td><td>94</td><td>73</td><td>−0.012</td></tr>
+<tr><td>08:40 to 09:50</td><td>12h35</td><td>Round 10</td><td>Light polish</td><td>95</td><td>74</td><td>−0.010</td></tr>
+<tr><td>10:05</td><td>12h50</td><td>You approve the stills</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>
+<tr><td>10:05 to 14:00</td><td>16h45</td><td>Test render, final render (3.4 h), encode, check</td><td>Ship</td><td>–</td><td>–</td><td>–</td></tr>
+</table></div>
+<p>The raw critic scores rise from 57 to 95. The calibrated scores rise from 36 to 74. The gap between them stays 21 points. That gap is what your estimate at 23:40 corrected.</p>
+
+<!-- ============================================================ -->
+<h2 id="resume">9. Resume after a context reset</h2>
+<p>All run state lives in <code>cook/</code>. These files are the agent's memory across context resets and the handoff to any other agent. <span class="src s">Skill</span></p>
+<ul>
+<li>If <code>cook/BRIEF.md</code> exists and the run is not shipped, the agent is resuming. It reads BRIEF, SHOTS and the last two ROUNDS entries, then starts the next round. It does not ask again, restart, or rebuild what works.</li>
+<li>After every context compaction it does the same before its next action.</li>
+<li>If <code>cook/</code> holds a shipped run, it moves it to <code>cook-archive/&lt;date&gt;/</code> and starts again at intake.</li>
+<li>When you write "continue", it runs the next round. It does not answer with a recap.</li>
+</ul>
+<div class="card ex"><span class="label">Example</span>
+<p>At 02:40 the context compacts. The agent reads <code>BRIEF.md</code> (bar, rules, floor, start 21:15), <code>SHOTS.md</code>, and the round 3 and 4 entries (offset −21, best so far round 4, next focus house detail). At 02:45 it starts round 5. You see no gap in the work.</p>
+</div>
+<div class="card why"><span class="label">Why</span>
+<p>A 10 to 40 hour run will lose its context more than one time. "Write entries a stranger could act on." <span class="src s">Skill</span> Then you after a compaction, a cloud agent, or another model can continue from the files alone.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="ui">10. The same workflow for a UI build</h2>
+<p>The steps stay the same. These parts change: <span class="src s">Skill</span></p>
+<div class="tw"><table>
+<tr><th>Part</th><th>3D world (the harbor)</th><th>UI (a website or an app)</th></tr>
+<tr><td>References</td><td>Images you generate, 9 to 12</td><td>Real product screens, for example from Mobbin. They set layout, typography, spacing and density.</td></tr>
+<tr><td>A shot</td><td>A fixed camera</td><td>One screen state at a fixed viewport size</td></tr>
+<tr><td>Composition</td><td>Framing, horizon</td><td>Layout and spacing</td></tr>
+<tr><td>Materials</td><td>Water, stone, foliage</td><td>Typography and components</td></tr>
+<tr><td>Motion</td><td>Camera moves</td><td>Interaction and transitions</td></tr>
+<tr><td>Ban list</td><td>Particles, orbs, rings</td><td>All items apply hard: eyebrow labels, monospace uppercase, beige, purple gradients, 01/02/03 counters, em dashes</td></tr>
+</table></div>
+<p>The agent writes the mapped list of dimensions into BRIEF.md. <span class="src s">Skill</span> The AI Labs video adds two UI steps, described in the next section: mockups first, and animations only after the layout is right. <span class="src v">Video</span></p>
+
+<!-- ============================================================ -->
+<h2 id="video">11. What the AI Labs video adds or changes</h2>
+<ul>
+<li><strong>More reference tools.</strong> Dribbble (screenshot a section and paste it into the agent). The Inspo MCP, with a library of more than 800 websites. An Awwwards MCP. Vercel's agent-browser, which opens a site, scrolls, takes full-page screenshots, and can record video so the agent sees how animations move. Leon himself names only Mobbin, X and GPT Image. <span class="src v">Video</span></li>
+<li><strong>Mockups as the target.</strong> For a page, the video says the target is a mockup: ask the agent for 3 different designs on one page, check them on small screens, and pick one. Mockups are cheap to change, so you try many designs with few tokens. Leon's article and the skill do not have this step. <span class="src v">Video</span></li>
+<li><strong>A test of the number.</strong> AI Labs asked for 99% similarity to a complex site and judged the result at about 66%. The 3D figure whose head follows the mouse was "not close at all". <span class="src v">Video</span></li>
+<li><strong>"Build step by step".</strong> The video says: build with no animations first, check the layout, then add the animations. Leon's article step 7 is about the render order (stills first, video later). The intent is the same (fix the cheap part before the expensive part), but the words differ. <span class="src v">Video</span> <span class="src a">Article</span></li>
+<li><strong>A limit of ban lists.</strong> A ban only stops the patterns you name. The model then moves to its next default look, so you must add each new pattern. AI Labs' slop-detector skill keeps all patterns in one file. It does not flag one pattern alone, because one color fade can be a design choice. It flags a group of patterns on the same page. <span class="src v">Video</span></li>
+<li><strong>Cook in practice.</strong> AI Labs installed the skill for one project with <code>npx skills add Leonxlnx/cook</code>. The skill asked about references, the bar, time and usage limits. The video warns: give it a time limit, because a design build "won't stop before 8 hours by default". <span class="src v">Video</span> (In the skill, the 8 h floor is the default for a demo or visual build. A small job gets a 1.5 h cap. <span class="src s">Skill</span>)</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="notes">12. Gaps and limits I found in the sources</h2>
+<ol>
+<li><strong>The bar condition and a 99.9 target.</strong> The stop check needs every dimension at the bar. With a 99.9 bar that Leon calls "probably not" reachable, that condition will usually stay false. The skill does not say what ends the run when you approve the stills but the bar is not met. In the example, your approval and the checked file end the run, and the agent states the gap: calibrated 74 against 99.9. The skill does tell the agent to report "plainly what is still below the bar" when a cap or usage stop comes first.</li>
+<li><strong>All similarity scores are eyeballed.</strong> Only the color check, frame times and the final file check are measured. The skill says so itself.</li>
+<li><strong>The calibration offset is one number.</strong> The skill subtracts one offset from all dimensions. Your estimate can differ by dimension (for example, color worse than composition). The skill does not split it.</li>
+<li><strong>Model names differ.</strong> The article says "GPT 6.1 Sol", "GPT Astra 6.1" and "GPT 6 Astra". The video says "GPT 6.1 Soul".</li>
+<li><strong>Cost.</strong> Leon's Greek world cost about $1.8k to $2.3k at API prices and ran on a Max plan. A run of this size on API billing costs real money. The usage pacing protects a subscription window, not a budget.</li>
+</ol>
+
+<h2 id="refs">References</h2>
+<ul>
+<li>Leon Lin, "How I prompt AI to build good looking demos", X article, 31 Oct 2026: <a href="https://x.com/LexnLin/status/2116662591363690999">x.com/LexnLin/status/2116662591363690999</a></li>
+<li>Leon Lin, <code>cook</code> skill (MIT license): <a href="https://github.com/Leonxlnx/cook">github.com/Leonxlnx/cook</a>. Install: <code>npx skills add Leonxlnx/cook</code></li>
+<li>Leon Lin, <code>unlazy</code> skill: <a href="https://github.com/Leonxlnx/unlazy">github.com/Leonxlnx/unlazy</a></li>
+<li>Athenaion (the Greek world): <a href="https://x.com/LexnLin/status/2111582260818239777">post</a>, <a href="https://github.com/Leonxlnx/athenaion">repo</a>. All demos: <a href="https://leonlin.de/demos">leonlin.de/demos</a></li>
+<li>AI Labs, YouTube video on Leon Lin's process and the Cook skill: <a href="https://www.youtube.com/watch?v=-bv2xKQzZio">youtube.com/watch?v=-bv2xKQzZio</a></li>
+</ul>
+<p>This page is an independent study of these sources. It is not made by or endorsed by Leon Lin or AI Labs.</p>
+
+</main>
+</body>
+</html>
